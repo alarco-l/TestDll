@@ -48,11 +48,12 @@ void							DlLoader::loadDLL(std::string const &path, std::string const &name)
 	if (name == "")
 	{
 		tmp = path;
-		start = tmp.rfind("\\");
-		end = tmp.find(".dll");
+		start = tmp.rfind("/");
+		end = tmp.find(".so");
 		if (start != std::string::npos && end != std::string::npos)
 			tmp = tmp.substr(start + 1, (end + 3) - start);
-		std::cout << tmp << std::endl;
+		_dll[tmp] = dll;
+		_name.push_back(tmp);
 	}
 	else
 	{
@@ -62,6 +63,7 @@ void							DlLoader::loadDLL(std::string const &path, std::string const &name)
 }
 #endif
 
+#ifdef WINDOWS
 void							DlLoader::loadDLLDir(std::string const &path)
 {
 	WIN32_FIND_DATA				ffd;
@@ -117,6 +119,50 @@ void							DlLoader::loadDLLDir(std::string const &path)
 		}
 	}
 }
+#else
+void							DlLoader::loadDLLDir(std::string const &path)
+{
+  DIR							*rep = NULL;
+  struct dirent						*file = NULL;
+  std::string						tmp;
+  std::string						name;
+  size_t						found = 0;
+  
+  if (path == "")
+    {
+      rep = opendir(_path.c_str());
+      if (rep == NULL)
+	throw std::runtime_error("Dir path is not valid");
+      while ((file = readdir(rep)) != NULL)
+	{
+	  name = file->d_name;
+	  found = name.find(".so");
+	  if (found != std::string::npos)
+	    {
+	      tmp = _path + "/" + name;
+	      loadDLL(tmp);
+	    }
+	}
+    }
+  else
+    {
+      rep = opendir(path.c_str());
+      if (rep == NULL)
+	throw std::runtime_error("Dir path is not valid");
+      while ((file = readdir(rep)) != NULL)
+	{
+	  name = file->d_name;
+	  found = name.find(".so");
+	  if (found != std::string::npos)
+	    {
+	      tmp = path + "/" + name;
+	      loadDLL(tmp);
+	    }
+	}
+    }
+  closedir(rep);
+}
+#endif
 
 #ifdef WINDOWS
 void							DlLoader::closeDLL(std::string const &name)
@@ -124,7 +170,7 @@ void							DlLoader::closeDLL(std::string const &name)
 	FreeLibrary(_dll[name]);
 }
 #else
-void							DlLoader::closeDLL(std::stringbuf const &name)
+void							DlLoader::closeDLL(std::string const &name)
 {
 	dlclose(_dll[name]);
 }

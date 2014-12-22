@@ -1,9 +1,11 @@
 #pragma once
 
-#ifndef _WIN32
+#ifdef __linux__
 #include <dlfcn.h>
+#include <dirent.h>
+#include <sys/types.h>
 #define LINUX
-#else
+#elif _WIN32
 #include <windows.h>
 #define WINDOWS
 #endif
